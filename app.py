@@ -242,26 +242,22 @@ with tab_m1:
 
         st.markdown("#### 🤖 LLM 参考意见（仅供参考）")
         if llm_adv and isinstance(llm_adv, dict) and "verdict" in llm_adv and "reason" in llm_adv:
-            st.markdown(
-                f"""
-                <div style="border-left: 4px solid #1976d2; background-color: #e3f2fd; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">
-                    <div style="font-size: 15px; color: #0d47a1; margin-bottom: 6px;"><strong>LLM 建议裁决</strong>：<code style="font-size: 14px; background-color: #bbdefb; padding: 2px 6px; border-radius: 3px;">{llm_adv['verdict']}</code></div>
-                    <div style="font-size: 14px; color: #263238; margin-bottom: 6px;"><strong>LLM 理由</strong>：{llm_adv['reason']}</div>
-                    <div style="font-size: 12px; color: #546e7a;">LLM 意见仅供参考，不改变锁定判定。</div>
-                </div>
-                """,
-                unsafe_allow_html=True
+            llm_box_html = (
+                f'<div style="border-left: 4px solid #1976d2; background-color: #e3f2fd; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">'
+                f'<div style="font-size: 15px; color: #0d47a1; margin-bottom: 6px;"><strong>LLM 建议裁决</strong>：<code style="font-size: 14px; background-color: #bbdefb; padding: 2px 6px; border-radius: 3px;">{llm_adv["verdict"]}</code></div>'
+                f'<div style="font-size: 14px; color: #263238; margin-bottom: 6px;"><strong>LLM 理由</strong>：{llm_adv["reason"]}</div>'
+                f'<div style="font-size: 12px; color: #546e7a;">LLM 意见仅供参考，不改变锁定判定。</div>'
+                f'</div>'
             )
+            st.markdown(llm_box_html, unsafe_allow_html=True)
         else:
-            st.markdown(
-                """
-                <div style="border-left: 4px solid #b0bec5; background-color: #eceff1; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">
-                    <div style="font-size: 14px; color: #455a64; margin-bottom: 6px;">LLM 参考意见暂不可用（已回退）</div>
-                    <div style="font-size: 12px; color: #78909c;">LLM 意见仅供参考，不改变锁定判定。</div>
-                </div>
-                """,
-                unsafe_allow_html=True
+            llm_box_html = (
+                f'<div style="border-left: 4px solid #b0bec5; background-color: #eceff1; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">'
+                f'<div style="font-size: 14px; color: #455a64; margin-bottom: 6px;">LLM 参考意见暂不可用（已回退）</div>'
+                f'<div style="font-size: 12px; color: #78909c;">LLM 意见仅供参考，不改变锁定判定。</div>'
+                f'</div>'
             )
+            st.markdown(llm_box_html, unsafe_allow_html=True)
 
     # 4. 命中的规则与修正建议
     if diff_res["hit_rules"]:
@@ -456,46 +452,42 @@ with tab_m3:
                     llm_rw_text = cand
 
             if llm_rw_text:
-                rewrite_box_html = f"""
-                    <div style="font-size: 14px; color: #1b5e20; background-color: #e8f5e9; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px;">
-                        <div style="margin-bottom: 4px;"><strong>🤖 LLM 改写（Qwen3.8-Flash）：</strong><span>{llm_rw_text}</span></div>
-                        <div style="color: #2e7d32;"><strong>模板改写：</strong><span>{l['rewritten']}</span></div>
-                    </div>
-                """
+                rewrite_box_html = (
+                    f'<div style="font-size: 14px; color: #1b5e20; background-color: #e8f5e9; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px;">'
+                    f'<div style="margin-bottom: 4px;"><strong>🤖 LLM 改写（Qwen3.8-Flash）：</strong><span>{llm_rw_text}</span></div>'
+                    f'<div style="color: #2e7d32;"><strong>模板改写：</strong><span>{l["rewritten"]}</span></div>'
+                    f'</div>'
+                )
             else:
-                rewrite_box_html = f"""
-                    <div style="font-size: 14px; color: #1b5e20; background-color: #e8f5e9; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px;">
-                        <div><strong>模板改写：</strong><span>{l['rewritten']}</span></div>
-                    </div>
-                """
+                rewrite_box_html = (
+                    f'<div style="font-size: 14px; color: #1b5e20; background-color: #e8f5e9; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px;">'
+                    f'<div><strong>模板改写：</strong><span>{l["rewritten"]}</span></div>'
+                    f'</div>'
+                )
 
-            st.markdown(
-                f"""
-                <div style="border-left: 5px solid #d32f2f; background-color: #ffebee; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: bold; font-size: 15px; color: #b71c1c;">第 {idx} 行话术 ｜ 🚨 违规拦截 [{l['main_type_zh']} · {l['severity']}]</span>
-                        <span style="background-color: #d32f2f; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">命中词: {', '.join(l['hit_words'])}</span>
-                    </div>
-                    <div style="font-size: 15px; color: #212121; margin-bottom: 6px;"><strong>原句：</strong><span style="text-decoration: line-through; color: #c62828;">{l['text']}</span></div>
-                    {rewrite_box_html}
-                    <div style="font-size: 12px; color: #616161;"><strong>命中法规/规则：</strong>[{l['rule']['id']}] 《{l['rule']['source']}》— {l['rule']['text']}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
+            card_html = (
+                f'<div style="border-left: 5px solid #d32f2f; background-color: #ffebee; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">'
+                f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">'
+                f'<span style="font-weight: bold; font-size: 15px; color: #b71c1c;">第 {idx} 行话术 ｜ 🚨 违规拦截 [{l["main_type_zh"]} · {l["severity"]}]</span>'
+                f'<span style="background-color: #d32f2f; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">命中词: {", ".join(l["hit_words"])}</span>'
+                f'</div>'
+                f'<div style="font-size: 15px; color: #212121; margin-bottom: 6px;"><strong>原句：</strong><span style="text-decoration: line-through; color: #c62828;">{l["text"]}</span></div>'
+                f'{rewrite_box_html}'
+                f'<div style="font-size: 12px; color: #616161;"><strong>命中法规/规则：</strong>[{l["rule"]["id"]}] 《{l["rule"]["source"]}》— {l["rule"]["text"]}</div>'
+                f'</div>'
             )
+            st.markdown(card_html, unsafe_allow_html=True)
         else:
-            st.markdown(
-                f"""
-                <div style="border-left: 5px solid #2e7d32; background-color: #f1f8e9; padding: 10px 16px; border-radius: 6px; margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: bold; font-size: 14px; color: #1b5e20;">第 {idx} 行话术 ｜ ✅ 合规通过</span>
-                        <span style="font-size: 12px; color: #558b2f;">符合《{l['rule']['source']}》</span>
-                    </div>
-                    <div style="font-size: 14px; color: #33691e; margin-top: 4px;"><strong>话术：</strong>{l['text']}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
+            card_html = (
+                f'<div style="border-left: 5px solid #2e7d32; background-color: #f1f8e9; padding: 10px 16px; border-radius: 6px; margin-bottom: 8px;">'
+                f'<div style="display: flex; justify-content: space-between; align-items: center;">'
+                f'<span style="font-weight: bold; font-size: 14px; color: #1b5e20;">第 {idx} 行话术 ｜ ✅ 合规通过</span>'
+                f'<span style="font-size: 12px; color: #558b2f;">符合《{l["rule"]["source"]}》</span>'
+                f'</div>'
+                f'<div style="font-size: 14px; color: #33691e; margin-top: 4px;"><strong>话术：</strong>{l["text"]}</div>'
+                f'</div>'
             )
+            st.markdown(card_html, unsafe_allow_html=True)
 
     # 4. 评测报告折叠栏
     st.markdown("---")
