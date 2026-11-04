@@ -9,9 +9,9 @@ from core.cost import calc_paths
 from m2.mock_menus import MOCK_STORES, FIX_RULE
 from m2.solver import enumerate_combos, apply_fix, translate_rule
 from m1.mock_products import PRODUCTS, RULES
-from m1.specdiff import diff_product
+from m1.specdiff import diff_product, llm_adjudicate_stub
 from m3.mock_scripts import SCRIPTS
-from m3.scanner import scan_script
+from m3.scanner import scan_script, llm_rewrite_stub
 
 # 页面基础配置
 st.set_page_config(page_title="MarginKeeper (MK)", layout="wide")
@@ -230,6 +230,39 @@ with tab_m1:
     else:
         st.success("✅ **质检裁决：通过（准予上架）** — 标题、属性表、详情页三处核心字段完全一致，符合平台合规标准。")
 
+    # LLM 参考意见区（仅在判定为人工核验的模糊商品上显示，如 P11）
+    if verdict == "fuzzy":
+        cache_key_m1 = f"llm_m1_{cur_prod['id']}"
+        if cache_key_m1 not in st.session_state:
+            try:
+                st.session_state[cache_key_m1] = llm_adjudicate_stub(cur_prod, diff_res.get("suggestion", ""))
+            except Exception:
+                st.session_state[cache_key_m1] = None
+        llm_adv = st.session_state.get(cache_key_m1)
+
+        st.markdown("#### 🤖 LLM 参考意见（仅供参考）")
+        if llm_adv and isinstance(llm_adv, dict) and "verdict" in llm_adv and "reason" in llm_adv:
+            st.markdown(
+                f"""
+                <div style="border-left: 4px solid #1976d2; background-color: #e3f2fd; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">
+                    <div style="font-size: 15px; color: #0d47a1; margin-bottom: 6px;"><strong>LLM 建议裁决</strong>：<code style="font-size: 14px; background-color: #bbdefb; padding: 2px 6px; border-radius: 3px;">{llm_adv['verdict']}</code></div>
+                    <div style="font-size: 14px; color: #263238; margin-bottom: 6px;"><strong>LLM 理由</strong>：{llm_adv['reason']}</div>
+                    <div style="font-size: 12px; color: #546e7a;">LLM 意见仅供参考，不改变锁定判定。</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                """
+                <div style="border-left: 4px solid #b0bec5; background-color: #eceff1; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">
+                    <div style="font-size: 14px; color: #455a64; margin-bottom: 6px;">LLM 参考意见暂不可用（已回退）</div>
+                    <div style="font-size: 12px; color: #78909c;">LLM 意见仅供参考，不改变锁定判定。</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
     # 4. 命中的规则与修正建议
     if diff_res["hit_rules"]:
         st.markdown("#### 📜 命中平台质检规则库：")
@@ -332,8 +365,36 @@ with tab_m2:
         f"- **穿底消除比例**：下降 {fix_res['decrease_pct']}%（实跑真实数值，不刷分、不凑数）"
     )
 
-    # 5. Text-to-Solver 分工说明
-    st.caption("ℹ️ **Text-to-Solver 架构分工**：规则翻译占 15%（由大模型把人话规则转为确定性约束，Demo 阶段采用正则桩），穷举求解占 85%（确定性算法暴力穷举账目），LLM 不直接算账，确保账目 100% 准确与抗幻觉。")
+    # 5. Text-to-Solver 分工说明与自定义新规则推演入口
+    st.markdown("---")
+    st.subheader("🤖 Text-to-Solver：自定义新规则翻译与沙盘推演（DeepSeek-V3）")
+    st.caption("ℹ️ **架构分工**：规则翻译占 15%（由 DeepSeek-V3 把人话规则解析为确定性约束），穷举求解占 85%（确定性算法暴力穷举账目），LLM 不直接算账，确保账目 100% 准确与抗幻觉。")
+
+    col_rule_in, col_rule_btn = st.columns([3, 1], gap="small")
+    with col_rule_in:
+        custom_rule_input = st.text_input("输入新满减规则（如：满50减20）", value="满50减20", label_visibility="visible")
+    with col_rule_btn:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        btn_trans = st.button("🚀 翻译并推演", use_container_width=True)
+
+    if btn_trans or "custom_m2_parsed" in st.session_state:
+        if btn_trans:
+            st.session_state["custom_m2_input"] = custom_rule_input
+            st.session_state["custom_m2_parsed"] = translate_rule(custom_rule_input)
+
+        parsed_rule = st.session_state.get("custom_m2_parsed", translate_rule(custom_rule_input))
+        st.markdown("**结构化规则 (JSON)**：")
+        st.json(parsed_rule)
+
+        # 用确定性求解器跑出穿底结果
+        custom_store = dict(cur_store)
+        custom_store["rule"] = parsed_rule
+        c_all_combos, c_underwater = enumerate_combos(custom_store)
+        st.markdown(
+            f"**沙盘推演结果（当前店铺：{cur_store['store_name']}）**：\n"
+            f"- 2-5件穷举总组合数：**{len(c_all_combos)}** 种\n"
+            f"- 新规则穿底组合数 (利润<0)：**{len(c_underwater)}** 种（占 {len(c_underwater)/len(c_all_combos)*100:.1f}%）"
+        )
 
 
 # =========================================================================
@@ -376,6 +437,38 @@ with tab_m3:
     st.subheader("🎙️ 话术逐行合规扫描与改写对比")
     for idx, l in enumerate(scan_res["scanned_lines"], 1):
         if l["is_violation"]:
+            # 尝试调用 LLM 改写桩（Qwen3.8-Flash）
+            cache_key_m3 = f"llm_m3_{cur_script['id']}_{idx}"
+            if cache_key_m3 not in st.session_state:
+                try:
+                    st.session_state[cache_key_m3] = llm_rewrite_stub(l["text"], l["main_type"])
+                except Exception:
+                    st.session_state[cache_key_m3] = None
+            llm_res_m3 = st.session_state.get(cache_key_m3)
+
+            llm_rw_text = None
+            if llm_res_m3 and isinstance(llm_res_m3, dict) and "rewrite" in llm_res_m3:
+                cand = llm_res_m3["rewrite"]
+                if "全网最低" in l["text"]:
+                    if "平台补贴价" in cand:
+                        llm_rw_text = cand
+                else:
+                    llm_rw_text = cand
+
+            if llm_rw_text:
+                rewrite_box_html = f"""
+                    <div style="font-size: 14px; color: #1b5e20; background-color: #e8f5e9; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px;">
+                        <div style="margin-bottom: 4px;"><strong>🤖 LLM 改写（Qwen3.8-Flash）：</strong><span>{llm_rw_text}</span></div>
+                        <div style="color: #2e7d32;"><strong>模板改写：</strong><span>{l['rewritten']}</span></div>
+                    </div>
+                """
+            else:
+                rewrite_box_html = f"""
+                    <div style="font-size: 14px; color: #1b5e20; background-color: #e8f5e9; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px;">
+                        <div><strong>模板改写：</strong><span>{l['rewritten']}</span></div>
+                    </div>
+                """
+
             st.markdown(
                 f"""
                 <div style="border-left: 5px solid #d32f2f; background-color: #ffebee; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px;">
@@ -384,9 +477,7 @@ with tab_m3:
                         <span style="background-color: #d32f2f; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">命中词: {', '.join(l['hit_words'])}</span>
                     </div>
                     <div style="font-size: 15px; color: #212121; margin-bottom: 6px;"><strong>原句：</strong><span style="text-decoration: line-through; color: #c62828;">{l['text']}</span></div>
-                    <div style="font-size: 15px; color: #1b5e20; background-color: #e8f5e9; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px;">
-                        <strong>✨ 建议改写：</strong><span>{l['rewritten']}</span>
-                    </div>
+                    {rewrite_box_html}
                     <div style="font-size: 12px; color: #616161;"><strong>命中法规/规则：</strong>[{l['rule']['id']}] 《{l['rule']['source']}》— {l['rule']['text']}</div>
                 </div>
                 """,
