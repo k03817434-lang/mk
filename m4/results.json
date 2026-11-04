@@ -1,0 +1,32 @@
+{
+  "total": 200,
+  "models": {
+    "A": {
+      "name": "A 基线规则",
+      "accuracy": 50.0,
+      "accuracy_clear": 50.0,
+      "accuracy_boundary": 50.0,
+      "accuracy_adversarial": 50.0,
+      "avg_cost": 133.4,
+      "avg_ms": 0.005
+    },
+    "B": {
+      "name": "B 贝叶斯 M0",
+      "accuracy": 100.0,
+      "accuracy_clear": 100.0,
+      "accuracy_boundary": 100.0,
+      "accuracy_adversarial": 100.0,
+      "avg_cost": 126.4,
+      "avg_ms": 0.004
+    },
+    "C": {
+      "name": "C 贝叶斯+成本",
+      "accuracy": 100.0,
+      "accuracy_clear": 100.0,
+      "accuracy_boundary": 100.0,
+      "accuracy_adversarial": 100.0,
+      "avg_cost": 10.0,
+      "avg_ms": 0.004
+    }
+  }
+}
