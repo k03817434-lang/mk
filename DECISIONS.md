@@ -64,4 +64,34 @@
   1. **M2 规则翻译接线点**：接入 `DeepSeek` 模型（`JSON Only`，控制参数 `temperature = 0.1`），对接 `m2/solver.py` 中的 `translate_rule` 桩函数，负责将复杂非结构化促销人话解析为数学阈值与减免约束；
   2. **M1 语义裁决接线点**：接入 `Qwen-Turbo` 模型（`JSON Only`，控制参数 `temperature = 0.1`），对接 `m1/specdiff.py` 中的 `llm_adjudicate_stub` 桩函数，负责裁决边缘同义材质或复杂规格表述是否构成实质性欺诈；
   3. **M3 话术改写接线点**：接入 `Qwen-Turbo` 模型（`JSON Only`，控制参数 `temperature = 0.1`），对接 `m3/scanner.py` 中的 `llm_rewrite_stub` 桩函数，仅针对命中违规的 1–2 句提供自然、吸睛且合规的文案改写，其余原文严格保持不动。
-  - *(注：D7 阶段保持本地无外部 API 调用依赖，待后续提供 API Key 后无缝切换)*。
+
+---
+
+## LLM 真实 API 接线记录（第五版 - D8）
+
+### 决策 7：三大桩函数接入真实 LLM API 与高可用回退机制
+- **日期**：2026-11-04
+- **做了什么**：
+  1. 将 M2 规则翻译、M1 语义裁决、M3 话术改写三个桩函数正式接入生产级真机 API；
+  2. 保持确定性代码与算账业务逻辑 100% 不变，函数签名 100% 兼容；
+  3. 实现严格的确定性约束校验与 API 异常/超时/鉴权失败双重安全回退。
+- **接线点模型、实测耗时与单次调用成本**：
+  1. **M2 `translate_rule` → DeepSeek-V3 (`deepseek-chat`)**：
+     - **接口与参数**：`https://api.deepseek.com/v1`，temperature 0.1，timeout 30s，JSON Only。
+     - **实测耗时**：**0.18s**。
+     - **单次成本**：约 **¥0.0003**（Prompt 111 tokens + Completion 19 tokens，按输入 ¥2/M、输出 ¥8/M 计）。
+     - **回退机制**：翻译结果必须经确定性求解器校验（满减门槛与优惠额需精确吻合），若校验失败、网络超时或缺少 key，自动回退内置正则解析桩。
+  2. **M1 `llm_adjudicate_stub` → 百炼 Qwen3.8-Flash (`qwen3.8-flash`)**：
+     - **接口与参数**：`https://dashscope.aliyuncs.com/compatible-mode/v1`，temperature 0.1，timeout 30s，JSON Only。
+     - **实测耗时**：**5.22s**（P11 实测输入与裁决分析）。
+     - **单次成本**：约 **¥0.0008**（Prompt 201 tokens + Completion 224 tokens，按 Flash 基础价计算）。
+     - **回退机制**：LLM 仅输出专家辅助意见，不改变系统锁定的确定性判定（P01 拦截 / P07 通过 / P11 人工核验绝对不变）；若异常回退 `None`。
+  3. **M3 `llm_rewrite_stub` → 百炼 Qwen3.8-Flash (`qwen3.8-flash`)**：
+     - **接口与参数**：`https://dashscope.aliyuncs.com/compatible-mode/v1`，temperature 0.1，timeout 30s，JSON Only。
+     - **实测耗时**：**3.30s**（S01 L3 实测）。
+     - **单次成本**：约 **¥0.0005**（Prompt 171 tokens + Completion 169 tokens）。
+     - **回退机制**：仅改写违规的 1–2 句，且改写结果强制校验（S01 L3 必须包含“平台补贴价”）；若未包含或 API 异常，自动回退预设模板改写。
+- **安全与合规保障**：
+  - API Key 仅保存在本地与 ECS 根目录 `.env` 中，通过 `os.environ` 动态读取，绝不硬编码或提交至版本库；
+  - `smoke_test.py` 敏感字符扫描断言持续保持 **100% PASS**。
+

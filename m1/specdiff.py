@@ -21,13 +21,84 @@ FIELD_NAMES = [
     ("shelf", "保质期"),
 ]
 
-def llm_adjudicate_stub():
-    """
-    LLM 语义裁决桩函数：
-    Demo 阶段确定性比对已覆盖全部 12 个案例，LLM 语义裁决留到集成时接 Qwen-Turbo
-    （JSON Only，只判冲突字段对，不直接算账）。不要真的调 API。
-    """
+def _get_env_key(key_name):
+    val = os.environ.get(key_name)
+    if val:
+        return val
+    env_file = os.path.join(project_root, ".env")
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        if k.strip() == key_name:
+                            val = v.strip()
+                            os.environ[key_name] = val
+                            return val
+        except Exception:
+            pass
     return None
+
+def llm_adjudicate_stub(product=None, conflict_desc=""):
+    """
+    M1 LLM 语义裁决桩 → 百炼 Qwen3.8-Flash (qwen3.8-flash)：
+    输入：商品四字段（材质 / 净含量 / 件数 / 保质期）+ 冲突描述；
+    输出：JSON Only，{verdict, reason}。
+    约束：LLM 只给参考意见，不改变锁定判定（P01 拦截 / P07 通过 / P11 人工核验必须不变）。
+    调用失败回退 None。
+    """
+    api_key = _get_env_key("DASHSCOPE_API_KEY")
+    if not api_key:
+        return None
+
+    if product is None:
+        from m1.mock_products import PRODUCTS
+        product = next((p for p in PRODUCTS if p["id"] == "P11"), None)
+        if not product:
+            return None
+        conflict_desc = conflict_desc or "材质字段存在模糊词'其他/见包装'，缺少具体成分"
+
+    import json
+    import urllib.request
+
+    info = f"商品名称: {product.get('name', '')} (品类: {product.get('category', '')})\n"
+    info += f"标题: 材质={product.get('title_material')}, 净含量={product.get('title_net')}, 件数={product.get('title_count')}, 保质期={product.get('title_shelf')}\n"
+    info += f"属性: 材质={product.get('attr_material')}, 净含量={product.get('attr_net')}, 件数={product.get('attr_count')}, 保质期={product.get('attr_shelf')}\n"
+    info += f"详情: 材质={product.get('detail_material')}, 净含量={product.get('detail_net')}, 件数={product.get('detail_count')}, 保质期={product.get('detail_shelf')}\n"
+    if conflict_desc:
+        info += f"待裁决描述: {conflict_desc}"
+
+    url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    payload = {
+        "model": "qwen3.8-flash",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个电商上架合规质检裁决专家。请分析商品在标题、属性、详情三处字段是否存在描述冲突或模糊，并给出裁决参考意见。输出纯 JSON 对象，格式必须为：{\"verdict\": \"拦截\" | \"通过\" | \"人工核验\", \"reason\": \"一句话分析原因\"}。只输出标准 JSON，不要任何其他解释。"
+            },
+            {"role": "user", "content": info}
+        ],
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"}
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            content = data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+            if "verdict" in parsed and "reason" in parsed:
+                return {"verdict": parsed["verdict"], "reason": parsed["reason"]}
+            return None
+    except Exception:
+        return None
 
 def find_rule(field_name, status, vals, promo="", sku_pack=""):
     """按字段查 RULES 获取对应规则"""

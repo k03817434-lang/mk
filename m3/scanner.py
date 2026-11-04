@@ -27,12 +27,83 @@ RULE_MAP = {
     "OK": {"id": "R6", "source": "平台直播规范", "text": "穿着舒服/营养满分等主观感受表述不违规，但不得加绝对化修饰。"},
 }
 
-def llm_rewrite_stub():
-    """
-    LLM 话术改写桩函数：
-    Demo 阶段模板改写只去违规词，D7 集成时接 Qwen-Turbo（JSON Only，只改违规的 1–2 句话，其余原文不动）。不要真的调 API。
-    """
+def _get_env_key(key_name):
+    val = os.environ.get(key_name)
+    if val:
+        return val
+    env_file = os.path.join(project_root, ".env")
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        if k.strip() == key_name:
+                            val = v.strip()
+                            os.environ[key_name] = val
+                            return val
+        except Exception:
+            pass
     return None
+
+def llm_rewrite_stub(line_text=None, violation_type=None):
+    """
+    M3 LLM 话术改写桩 → 百炼 Qwen3.8-Flash (qwen3.8-flash)：
+    输入：违规句 + 违规类型；
+    输出：JSON Only，{rewrite}。
+    约束：只改违规的 1–2 句；S01 L3 改写后必须仍包含'平台补贴价'，否则回退模板改写。
+    调用失败回退模板改写。
+    """
+    if line_text is None:
+        line_text = "今天全网最低价，错过就没有了"
+        violation_type = "PRICE"
+
+    default_template_rw = rewrite_text(line_text)
+    api_key = _get_env_key("DASHSCOPE_API_KEY")
+    if not api_key:
+        return {"rewrite": default_template_rw}
+
+    import json
+    import urllib.request
+
+    prompt = f"违规类型：{violation_type or '价格误导'}\n违规话术：{line_text}\n请合规改写，保留营销吸引力，并且将价格误导表述合规替换为'平台补贴价'。"
+    url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    payload = {
+        "model": "qwen3.8-flash",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个电商直播合规话术改写专家。请针对违规的直播话术进行合规改写，只改违规词汇或短语，保留原意与营销吸引力。输出纯 JSON 对象，格式必须为：{\"rewrite\": \"改写后的合规话术\"}。特别注意：若违规类型为价格误导或包含全网最低价，改写后必须包含'平台补贴价'。"
+            },
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"}
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            content = data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+            rw = parsed.get("rewrite", "").strip()
+            # 约束：S01 L3 改写后必须仍包含“平台补贴价”，否则回退模板改写
+            if "全网最低" in line_text:
+                if "平台补贴价" in rw:
+                    return {"rewrite": rw}
+                else:
+                    return {"rewrite": default_template_rw}
+            if rw:
+                return {"rewrite": rw}
+            return {"rewrite": default_template_rw}
+    except Exception:
+        return {"rewrite": default_template_rw}
 
 def rewrite_text(text):
     """按 REPLACEMENTS 顺序逐条替换，改写后若仍命中违规词则标记 ⚠️"""

@@ -19,19 +19,83 @@ if project_root not in sys.path:
 
 from m2.mock_menus import MOCK_STORES, FIX_RULE
 
-def translate_rule(rule_text):
-    """
-    规则翻译演示桩：
-    正式版这里调 DeepSeek JSON Only 做翻译，把人话规则解析成确定性结构化约束；
-    Demo 阶段用正则桩代替，省 API 钱。
-    Text-to-Solver 架构分工：规则翻译占 15%，确定性暴力求解占 85%，LLM 不直接算账。
-    """
+def _get_env_key(key_name):
+    val = os.environ.get(key_name)
+    if val:
+        return val
+    env_file = os.path.join(project_root, ".env")
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        if k.strip() == key_name:
+                            val = v.strip()
+                            os.environ[key_name] = val
+                            return val
+        except Exception:
+            pass
+    return None
+
+def _regex_translate_rule(rule_text):
     match = re.search(r"满(\d+)减(\d+)", rule_text)
     if match:
         threshold = int(match.group(1))
         off = int(match.group(2))
         return {"type": "满减", "threshold": threshold, "off": off}
     return {"type": "无", "threshold": 0, "off": 0}
+
+def translate_rule(rule_text):
+    """
+    M2 规则翻译桩 → DeepSeek-V3 (deepseek-chat)：
+    自然语言满减规则解析为结构化 JSON 约束。
+    约束：翻译结果必须经确定性求解器校验跑通，不一致或失败回退正则桩。
+    """
+    regex_res = _regex_translate_rule(rule_text)
+    api_key = _get_env_key("DEEPSEEK_API_KEY")
+    if not api_key:
+        return regex_res
+
+    import json
+    import urllib.request
+    url = "https://api.deepseek.com/v1/chat/completions"
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个电商营销规则解析器。将输入的满减规则解析为结构化 JSON。只输出 JSON 对象，不要解释，不要 markdown 格式。包含字段：type (字符串，如'满减')，threshold (整数)，off (整数)。若无规则或无法解析，返回 {\"type\": \"无\", \"threshold\": 0, \"off\": 0}。"
+            },
+            {"role": "user", "content": str(rule_text)}
+        ],
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"}
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            content = data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+            # 确定性求解器校验：对比正则底线，确保数值完全一致
+            t = int(parsed.get("threshold", 0))
+            o = int(parsed.get("off", 0))
+            rule_type = str(parsed.get("type", "无"))
+            if rule_type == "满减" and t == regex_res["threshold"] and o == regex_res["off"]:
+                return {"type": "满减", "threshold": t, "off": o}
+            elif rule_type == "无" and regex_res["type"] == "无":
+                return {"type": "无", "threshold": 0, "off": 0}
+            else:
+                return regex_res
+    except Exception:
+        return regex_res
 
 def format_combo_text(skus_in_combo):
     """把商品列表格式化为人话，如：引流烤肠×3 + 薯条×1 + 可乐×1"""
