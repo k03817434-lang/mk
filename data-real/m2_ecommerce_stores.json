@@ -1,0 +1,355 @@
+{
+  "date": "2026-11-05",
+  "note": "solver 公式与模拟版一致（m2/solver.py）：实收 = (总价 − 满减) × (1 − 佣金率)，利润 = 实收 − 总成本 − 物流成本，利润 < 0 即穿底。组合 2–5 件可重复。",
+  "stores": [
+    {
+      "assumptions": {
+        "commission_rate": 0.05,
+        "delivery_cost_yuan": 8,
+        "note": "佣金 5% + 物流 ¥8/单沿用模拟 S4 电商约定，标注估算；成本率 40%/50% 同文件 21 的假设"
+      },
+      "coupons": [
+        {
+          "off": 30,
+          "threshold": 799
+        },
+        {
+          "off": 50,
+          "threshold": 1299
+        }
+      ],
+      "id": "E1",
+      "loss_leader_id": null,
+      "loss_leader_note": "店内无引流亏本品（最便宜 SKU ¥399，40% 成本 ¥159.6），不跑修复",
+      "name": "伊芙丽官方旗舰",
+      "platform": "天猫",
+      "price_basis": "商品页“优惠前 ¥X”（双11品类周期间价，11月8日24点结束；非吊牌价——2号商品吊牌价 ¥890 另注）",
+      "promo": {
+        "cross_store": "档位未公开（订单确认页曾显示跨店满减 −¥120.00，仅作原文记录，不推断档位）",
+        "gift_multi": "未公开",
+        "store_manjiang": "未公开（未见满X减Y档位）"
+      },
+      "rules_tested": [
+        {
+          "off": 30,
+          "threshold": 799
+        },
+        {
+          "off": 50,
+          "threshold": 1299
+        }
+      ],
+      "shop_url": "https://eifini.tmall.com/",
+      "skus": [
+        {
+          "cost_40pct": 599.6,
+          "id": "coat",
+          "name": "驼绒真丝双面呢羊毛大衣",
+          "price": 1499,
+          "sold": "1万+"
+        },
+        {
+          "cost_40pct": 159.6,
+          "id": "pants1",
+          "name": "保暖绒感针织休闲裤",
+          "price": 399,
+          "sold": "3万+"
+        },
+        {
+          "cost_40pct": 159.6,
+          "id": "knit1",
+          "name": "全羊毛可机洗无缝打底针织衫",
+          "price": 399,
+          "sold": "7000+"
+        },
+        {
+          "cost_40pct": 199.6,
+          "id": "pants2",
+          "name": "保暖针织直筒休闲裤（糯米裤）",
+          "price": 499,
+          "sold": "1000+"
+        },
+        {
+          "cost_40pct": 215.6,
+          "id": "jeans",
+          "name": "拖地裤加绒阔腿直筒牛仔裤",
+          "price": 539,
+          "sold": "1万+"
+        },
+        {
+          "cost_40pct": 215.6,
+          "id": "knit2",
+          "name": "不规则坑条针织衫",
+          "price": 539,
+          "sold": "1000+"
+        },
+        {
+          "cost_40pct": 159.6,
+          "id": "shirt",
+          "name": "正肩版型职场通勤棉感衬衫",
+          "price": 399,
+          "sold": "1万+"
+        }
+      ],
+      "solver_result": {
+        "combos": 784,
+        "note": "两档券 × 两种成本率，四种组合全部 0 穿底。最亏组合仍盈利 ¥430.9（40%）/ ¥351.1（50%）：2×休闲裤（原价 ¥798，差 ¥1 不到 799 门槛）。券太浅（3.8%上下）是结论，不是缺口。",
+        "underwater_40pct": 0,
+        "underwater_50pct": 0,
+        "worst_combo": "保暖绒感针织休闲裤×2",
+        "worst_profit_40pct": 430.9,
+        "worst_profit_50pct": 351.1
+      },
+      "status": "solver-ready，已定档"
+    },
+    {
+      "assumptions": {
+        "note": "规则已采全；原价待补后按伊芙丽同口径跑 solver（佣金 5% + 物流 ¥8/单，成本率 40%/50%）"
+      },
+      "coupons": [
+        {
+          "note": "会员专享，领券后1天内有效",
+          "off": 15,
+          "threshold": 228
+        }
+      ],
+      "id": "E2",
+      "name": "蓝月亮官方旗舰",
+      "platform": "拼多多",
+      "price_basis": "未公开（拼多多网页版价格遮挡）",
+      "promo": {
+        "cross_store": "跨店每200减30（单品标注）",
+        "gift_multi": "满2件享9.2折；买赠未公开",
+        "store_manjiang": "满54减15 / 满99减50 / 每满200减30（专区可用）"
+      },
+      "shop_url": "https://mobile.yangkeduo.com/mall_page.html?mall_sn=CgI2WRIIS0xJNU5SeWUaEJ0%2BYKqfzXkjLhRpoXiYhy4iENNDRpRpPscNkKlOvnvSDvAoAjAC",
+      "skus": [
+        {
+          "list_price": "券后 ¥110.89",
+          "name": "洗衣液深层洁净强效去渍薰衣草清香型囤货家庭装"
+        },
+        {
+          "list_price": "券后 ¥9.9",
+          "name": "洗手液抑菌率99.9%滋润芦荟"
+        },
+        {
+          "list_price": "券后 ¥7.9",
+          "name": "厕宝洁厕灵马桶清洁剂"
+        },
+        {
+          "list_price": "券后 ¥27.99",
+          "name": "衣领净强效去黄去渍免搓喷雾组合"
+        },
+        {
+          "list_price": "券后 ¥92.39",
+          "name": "洗衣液薰衣草香整箱直销批发价"
+        },
+        {
+          "list_price": "券后 ¥91.06",
+          "name": "洗衣液整箱批发家用促销组合装"
+        },
+        {
+          "list_price": "券后 ¥129.9",
+          "name": "至尊洗衣精华浓缩洗衣液套装"
+        },
+        {
+          "list_price": "券后 ¥183.89",
+          "name": "至尊浓缩洗衣液阳光柠檬"
+        },
+        {
+          "list_price": "列表展示价 ¥17.8（无标注）",
+          "name": "洗衣液去污家用补充装"
+        },
+        {
+          "list_price": "券后 ¥14.9",
+          "name": "宝宝儿童洗衣液"
+        }
+      ],
+      "solver_result": null,
+      "status": "归档，不进 M2——ken 2026-11-05 23:16 定：换淘宝日用店，零截图；原价只能 App 截图拿，ken 不截图。满99减50（50% off）仍是已采规则里最陡的一档，记作参考"
+    },
+    {
+      "id": "E3",
+      "name": "三只松鼠官方旗舰",
+      "note": "无原价（拼多多网页版遮挡）且无店铺满减（只有百亿补贴 + 首件立减，属平台补贴）。不适合当 M2 店，弃用；另找一家有店铺满减的零食店。",
+      "platform": "拼多多",
+      "status": "弃用"
+    },
+    {
+      "assumptions": {
+        "commission_rate": 0.05,
+        "delivery_cost_yuan": 8,
+        "note": "佣金 5% + 物流 ¥8/单沿用模拟 S4 电商约定，标注估算；成本率 40%/50%。满减归属未标注（页面未写是店铺满减还是跨店满减），记 caveat。"
+      },
+      "coupons": [],
+      "id": "E4",
+      "loss_leader_id": null,
+      "loss_leader_note": "店内无引流亏本品（最便宜 SKU ¥11.9，40% 成本 ¥4.8），不跑修复",
+      "name": "全棉时代官方旗舰店",
+      "platform": "天猫",
+      "price_basis": "商品页“优惠前 ¥X”（双11品类周期间价，11月8日24点结束；非吊牌价）",
+      "promo": {
+        "cross_store": "未标注归属：商品页“可再享：满200减25”与“已享受：满480减60”，页面未写是店铺满减还是跨店满减",
+        "gift_multi": "未公开",
+        "store_manjiang": "同上（未标注归属）"
+      },
+      "rules_tested": [
+        {
+          "off": 25,
+          "threshold": 200
+        },
+        {
+          "off": 60,
+          "threshold": 480
+        }
+      ],
+      "shop_url": "https://purcotton.tmall.com/",
+      "skus": [
+        {
+          "cost_40pct": 5.2,
+          "id": "pad",
+          "name": "奈丝公主卫生巾",
+          "note": "秒杀价 ¥10.9",
+          "price": 12.9
+        },
+        {
+          "cost_40pct": 299.6,
+          "id": "sheet",
+          "name": "纯棉四件套",
+          "note": "平台加补后 ¥604.05",
+          "price": 749
+        },
+        {
+          "cost_40pct": 4.8,
+          "id": "towel20",
+          "name": "加厚洗脸巾20抽体验装",
+          "price": 11.9
+        },
+        {
+          "cost_40pct": 16.0,
+          "id": "baby",
+          "name": "婴儿洗脸巾M码",
+          "price": 39.9
+        },
+        {
+          "cost_40pct": 6.8,
+          "id": "underwear",
+          "name": "女士抗菌中腰内裤",
+          "price": 16.9
+        }
+      ],
+      "skus_excluded": [
+        {
+          "name": "洗脸巾U先6片便携装",
+          "note": "红条仅显示 ¥5.9，未标注“优惠前”，原价未公开，不进 solver",
+          "price_shown": 5.9
+        }
+      ],
+      "solver_result": {
+        "combos": 246,
+        "note": "两档满减（同为 12.5%）× 两种成本率，四种组合全部 0 穿底。最亏组合仍盈利 ¥5.0（40%）/ ¥2.6（50%）：2× 20抽体验装（原价 ¥23.8，¥8 物流几乎吃掉全部毛利）。满减档位归属未标注是 caveat。",
+        "underwater_40pct": 0,
+        "underwater_50pct": 0,
+        "worst_combo": "加厚洗脸巾20抽体验装×2",
+        "worst_profit_40pct": 5.0,
+        "worst_profit_50pct": 2.6
+      },
+      "status": "solver-ready，已定档"
+    },
+    {
+      "assumptions": {
+        "commission_rate": 0.05,
+        "delivery_cost_yuan": 13,
+        "note": "佣金 5% + 物流 ¥13/单（小件商品页显示值，取最坏情况；山核桃仁免运费），标注估算；成本率 40%/50%。满99减30 来源为分类 + 标题前缀，详情页优惠栏未复现，记 caveat。限购（肉片1件、其余小件3件）solver 不建模，另算有效组合。"
+      },
+      "coupons": [
+        {
+          "note": "券满88减5",
+          "off": 5,
+          "threshold": 88
+        },
+        {
+          "note": "鲜食加补券满30减4（芒果干）",
+          "off": 4,
+          "threshold": 30
+        }
+      ],
+      "id": "E5",
+      "loss_leader_id": null,
+      "loss_leader_note": "无引流亏本品（最便宜 SKU ¥1.4 尝鲜装，40% 成本 ¥0.6，仍高于成本；是流量款不是亏本款），不跑修复",
+      "name": "三只松鼠旗舰店",
+      "platform": "天猫",
+      "price_basis": "商品页“优惠前 ¥X”（双11品类周期间价，11月8日24点结束；非吊牌价）",
+      "promo": {
+        "cross_store": "未公开（页面未见“跨店满减”字样）",
+        "gift_multi": "99元任选20件专区（¥4.95/件）；29.9元任选4件。任选定价不进单规则 solver，记元数据。",
+        "store_manjiang": "满99减30（分类 + 标题前缀；详情页优惠栏未复现）"
+      },
+      "rules_tested": [
+        {
+          "off": 30,
+          "threshold": 99
+        }
+      ],
+      "shop_url": "https://sanzhisongshu.tmall.com/",
+      "skus": [
+        {
+          "cost_40pct": 44.4,
+          "id": "walnut",
+          "name": "野生山核桃仁500g",
+          "price": 111
+        },
+        {
+          "cost_40pct": 0.6,
+          "id": "meat",
+          "limit": "限购1件",
+          "name": "高蛋白肉片尝鲜装",
+          "price": 1.4
+        },
+        {
+          "cost_40pct": 3.9,
+          "id": "tendon",
+          "limit": "限购3件",
+          "name": "牛蹄筋80g",
+          "price": 9.8
+        },
+        {
+          "cost_40pct": 3.9,
+          "id": "claw",
+          "limit": "限购3件",
+          "name": "虎皮凤爪",
+          "price": 9.7
+        },
+        {
+          "cost_40pct": 3.2,
+          "id": "hawthorn",
+          "limit": "限购3件",
+          "name": "益生元坚果山楂棒",
+          "price": 7.9
+        },
+        {
+          "cost_40pct": 4.5,
+          "id": "mango",
+          "limit": "限购3件",
+          "name": "芒果干116g",
+          "price": 11.2
+        }
+      ],
+      "solver_result": {
+        "combos": 455,
+        "combos_valid": 343,
+        "note": "满99减30（30.3% off）。原始穷举 455 组合：穿底 54（11.9%）@40% / 74（16.3%）@50%。按限购过滤后（肉片≤1、其余小件≤3）有效组合 343：穿底 24（7.0%）@40% / 35（10.2%）@50%。最亏原始组合（肉片×2，−¥11.5）违反限购1件，不采用；有效最亏：肉片 + 山楂棒，−¥8.0（40%）/ −¥8.9（50%）。漏检本质是小额订单 + ¥13 运费，不是满减：能触发满99减30 的篮子毛利足够，穿底的全是到不了 ¥99 的小篮子。",
+        "underwater_40pct": 54,
+        "underwater_40pct_valid": 24,
+        "underwater_50pct": 74,
+        "underwater_50pct_valid": 35,
+        "worst_combo": "高蛋白肉片尝鲜装 + 益生元坚果山楂棒（有效最亏）",
+        "worst_combo_raw": "高蛋白肉片尝鲜装×2（−¥11.5，违反限购1件，不采用）",
+        "worst_profit_40pct": -8.0,
+        "worst_profit_50pct": -8.9
+      },
+      "status": "solver-ready，已定档——电商版唯一跑出穿底的店"
+    }
+  ],
+  "version": "定档版 v1"
+}
