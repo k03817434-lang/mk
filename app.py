@@ -28,7 +28,7 @@ st.title("MarginKeeper — 电商售后合规与博弈决策台")
 st.markdown("##### 帮中小商家在仅退款、满减穿底、直播违规之前，先算清每一分钱。")
 st.markdown(
     '<div style="color: #d32f2f; font-weight: bold; font-size: 15px; padding: 8px 12px; background-color: #ffebee; border-left: 4px solid #d32f2f; margin-bottom: 20px;">'
-    '全部数据为模拟 / 假设，不是真实店铺数据与实测结果。'
+    '本演示混合模拟数据与真实公开案例，真实数据页签已标注来源。'
     '</div>',
     unsafe_allow_html=True
 )
@@ -524,12 +524,11 @@ with tab_m3:
                 st.info("还没跑评测，先在终端跑 python m3/run_eval.py")
 
 
-    # =========================================================================
-    # 页签 5：M4 评测报告（D5 新增）
     with m3_sub_real:
-        render_m3_real,
-    render_m4_real()
+        render_m3_real()
 
+# =========================================================================
+# 页签 5：M4 评测报告（D5 新增）
 # =========================================================================
 with tab_m4:
     m4_sub_sim, m4_sub_real = st.tabs(["📊 模拟规则对比评测 (200 题 Sanity Check)", "📁 真实业务实测评测 (双模型金标 + 抽取 + 4轴压力 + 回测)"])
