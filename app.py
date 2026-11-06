@@ -16,7 +16,8 @@ from core.real_views import (
     render_m0_real,
     render_m1_real,
     render_m2_real,
-    render_m3_real
+    render_m3_real,
+    render_m4_real
 )
 
 # 页面基础配置
@@ -526,79 +527,85 @@ with tab_m3:
     # =========================================================================
     # 页签 5：M4 评测报告（D5 新增）
     with m3_sub_real:
-        render_m3_real()
+        render_m3_real,
+    render_m4_real()
 
 # =========================================================================
 with tab_m4:
-    # 顶部一行红字横幅
-    st.markdown(
-        '<div style="color: #d32f2f; font-weight: bold; font-size: 16px; padding: 8px 12px; background-color: #ffebee; border-left: 4px solid #d32f2f; margin-bottom: 20px;">'
-        '模拟评测 / 假设，gold 由规则定义，不是真实判责结果。'
-        '</div>',
-        unsafe_allow_html=True
-    )
-    st.title("M4 EvalForge — 200 题三模型对比评测")
+    m4_sub_sim, m4_sub_real = st.tabs(["📊 模拟规则对比评测 (200 题 Sanity Check)", "📁 真实业务实测评测 (双模型金标 + 抽取 + 4轴压力 + 回测)"])
+    with m4_sub_sim:
+        # 顶部一行红字横幅
+        st.markdown(
+            '<div style="color: #d32f2f; font-weight: bold; font-size: 16px; padding: 8px 12px; background-color: #ffebee; border-left: 4px solid #d32f2f; margin-bottom: 20px;">'
+            '模拟评测 / 假设，gold 由规则定义，不是真实判责结果。'
+            '</div>',
+            unsafe_allow_html=True
+        )
+        st.title("M4 EvalForge — 200 题三模型对比评测")
 
-    results_file = os.path.join(os.path.dirname(__file__), "m4", "results.json")
-    if os.path.exists(results_file):
-        with open(results_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        models_data = data.get("models", {})
+        results_file = os.path.join(os.path.dirname(__file__), "m4", "results.json")
+        if os.path.exists(results_file):
+            with open(results_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            models_data = data.get("models", {})
 
-        # 1. 三模型准确率对比柱状图
-        st.subheader("📊 三模型总体准确率对比")
-        chart_data = {
-            "模型": [models_data[k]["name"] for k in ["A", "B", "C"] if k in models_data],
-            "总体准确率 (%)": [models_data[k]["accuracy"] for k in ["A", "B", "C"] if k in models_data],
-        }
-        chart_df = pd.DataFrame(chart_data).set_index("模型")
-        st.bar_chart(chart_df)
+            # 1. 三模型准确率对比柱状图
+            st.subheader("📊 三模型总体准确率对比")
+            chart_data = {
+                "模型": [models_data[k]["name"] for k in ["A", "B", "C"] if k in models_data],
+                "总体准确率 (%)": [models_data[k]["accuracy"] for k in ["A", "B", "C"] if k in models_data],
+            }
+            chart_df = pd.DataFrame(chart_data).set_index("模型")
+            st.bar_chart(chart_df)
 
-        st.markdown("---")
+            st.markdown("---")
 
-        # 2. 三维表
-        st.subheader("📋 三模型三维评测对比表（准确率 × 期望成本 × 耗时）")
-        dim3_rows = []
-        for k in ["A", "B", "C"]:
-            if k in models_data:
-                m = models_data[k]
-                dim3_rows.append({
-                    "模型方案": m["name"],
-                    "总体准确率": f"{m['accuracy']}%",
-                    "平均单笔期望成本": f"¥{m['avg_cost']:.1f}",
-                    "平均单题耗时": f"{m['avg_ms']:.3f} ms",
-                })
-        st.dataframe(dim3_rows, use_container_width=True, hide_index=True)
+            # 2. 三维表
+            st.subheader("📋 三模型三维评测对比表（准确率 × 期望成本 × 耗时）")
+            dim3_rows = []
+            for k in ["A", "B", "C"]:
+                if k in models_data:
+                    m = models_data[k]
+                    dim3_rows.append({
+                        "模型方案": m["name"],
+                        "总体准确率": f"{m['accuracy']}%",
+                        "平均单笔期望成本": f"¥{m['avg_cost']:.1f}",
+                        "平均单题耗时": f"{m['avg_ms']:.3f} ms",
+                    })
+            st.dataframe(dim3_rows, use_container_width=True, hide_index=True)
 
-        st.markdown("---")
+            st.markdown("---")
 
-        # 3. 分 subset 准确率表
-        st.subheader("🎯 细分子集准确率表现（清晰题 / 边界题 / 对抗题）")
-        sub_rows = []
-        for k in ["A", "B", "C"]:
-            if k in models_data:
-                m = models_data[k]
-                sub_rows.append({
-                    "模型方案": m["name"],
-                    "清晰题 (100题)": f"{m['accuracy_clear']}%",
-                    "边界题 (40题)": f"{m['accuracy_boundary']}%",
-                    "对抗题 (60题)": f"{m['accuracy_adversarial']}%",
-                    "总体准确率 (200题)": f"{m['accuracy']}%",
-                })
-        st.dataframe(sub_rows, use_container_width=True, hide_index=True)
-        st.caption("*注：100% 为规则引擎自洽性验证（Sanity Check），LLM 端到端实测准确率待双盲标注后更新。")
+            # 3. 分 subset 准确率表
+            st.subheader("🎯 细分子集准确率表现（清晰题 / 边界题 / 对抗题）")
+            sub_rows = []
+            for k in ["A", "B", "C"]:
+                if k in models_data:
+                    m = models_data[k]
+                    sub_rows.append({
+                        "模型方案": m["name"],
+                        "清晰题 (100题)": f"{m['accuracy_clear']}%",
+                        "边界题 (40题)": f"{m['accuracy_boundary']}%",
+                        "对抗题 (60题)": f"{m['accuracy_adversarial']}%",
+                        "总体准确率 (200题)": f"{m['accuracy']}%",
+                    })
+            st.dataframe(sub_rows, use_container_width=True, hide_index=True)
+            st.caption("*注：100% 为规则引擎自洽性验证（Sanity Check），LLM 端到端实测准确率待双盲标注后更新。")
 
-    else:
-        st.warning("暂无评测数据，请先在终端运行 `python m4/evalforge.py` 生成评测报告。")
-
-    # 4. 评测报告折叠栏
-    st.markdown("---")
-    with st.expander("评测报告（模拟）"):
-        report_200_file = os.path.join(os.path.dirname(__file__), "m4", "eval_report_200.md")
-        if os.path.exists(report_200_file):
-            with open(report_200_file, "r", encoding="utf-8") as f:
-                st.markdown(f.read(), unsafe_allow_html=True)
         else:
-            st.info("还没跑评测，先在终端跑 python m4/evalforge.py")
+            st.warning("暂无评测数据，请先在终端运行 `python m4/evalforge.py` 生成评测报告。")
+
+        # 4. 评测报告折叠栏
+        st.markdown("---")
+        with st.expander("评测报告（模拟）"):
+            report_200_file = os.path.join(os.path.dirname(__file__), "m4", "eval_report_200.md")
+            if os.path.exists(report_200_file):
+                with open(report_200_file, "r", encoding="utf-8") as f:
+                    st.markdown(f.read(), unsafe_allow_html=True)
+            else:
+                st.info("还没跑评测，先在终端跑 python m4/evalforge.py")
 
 
+
+    with m4_sub_real:
+        render_m4_real()
